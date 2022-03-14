@@ -1,0 +1,60 @@
+#!/bin/bash -e
+
+basedir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# 100 DPMM
+dpi=2540
+
+if [ -z "$1" ]; then
+    echo "Keine Datei angegeben."
+    exit
+fi
+
+if [ ! -f "$1" ]; then
+    echo "Datei $1 konnte nicht gefunden werden."
+    exit
+fi
+
+# tmp="$(mktemp -d)/"
+tmp="tmp/"
+
+echo "Entpacke $1 nach $tmp..."
+unzip -o "$1" -d "$tmp" 
+
+cd $tmp
+
+bottom_layer_file=$(echo -n *.GBL)
+drill_pth=$(echo -n *_PTH.DRL)
+drill_npth=$(echo -n *_NPTH.DRL)
+
+echo "Datei für Bottom Layer: $bottom_layer_file";
+echo "Bohrdateien: $drill_pth $drill_npth";
+
+echo "Konvertiere Bottom Layer in PNG..."
+gerbv -O0x0 -B0 -xpng -D$dpi -f#FF0000 $bottom_layer_file
+
+echo "Spiegele Bottom Layer..."
+convert -flop output.png bottom_layer.png
+rm output.png
+
+# Abmaße Leiterplatte
+echo
+width_px=$(identify -format "%w" bottom_layer.png)
+height_px=$(identify -format "%h" bottom_layer.png)
+
+width=$(echo "scale=3;$width_px/$dpi*25.4" | bc)
+height=$(echo "scale=3;$height_px/$dpi*25.4" | bc)
+
+echo "Abmaße der Leiterplatte: ${width}mm x ${height}mm (${width_px}px x ${height_px}px)"
+echo 
+
+echo "Vereinige Bohrdateien..."
+gerbv -umm -xdrill -o drill.cnc -T-${width}x0 $drill_pth -T-${width}x0 $drill_npth
+
+echo "Erzeuge Bohr-GCODE..."
+pcb2gcode --metric=true --metricoutput=true --drill=drill.cnc --drill-output=drill.gcode \
+    --zsafe=1.2mm --zchange=1.2mm --zdrill=-2mm --drill-feed 15mm/min --drill-speed 20000rpm \
+    --onedrill true --nog81=true --nog91-1=true --drill-side=back
+
+echo "Erzeuge Laser-GCODE..."
+$basedir/raster.js -i bottom_layer.png -d $dpi -o bottom.gcode

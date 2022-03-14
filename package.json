@@ -1,0 +1,23 @@
+{
+  "name": "gerber2gcode",
+  "version": "1.0.0",
+  "description": "",
+  "main": "raster.js",
+  "scripts": {
+    "test": "node raster.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dasslefl/gerber2gcode.git"
+  },
+  "author": "Florian Daßler",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/dasslefl/gerber2gcode/issues"
+  },
+  "homepage": "https://github.com/dasslefl/gerber2gcode#readme",
+  "dependencies": {
+    "jimp": "^0.16.1",
+    "yargs": "^17.3.1"
+  }
+}
